@@ -1,0 +1,5 @@
+# Secrets / node identity
+config.env
+
+# Runtime data (tailscale state, stremio cache)
+data/
