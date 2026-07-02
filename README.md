@@ -20,16 +20,25 @@ server. The `stremio-server` container shares the sidecar's network namespace, s
 no ports are exposed publicly — access is purely tailnet-internal.
 
 ```
-web.stremio.com  (open on your watch device, e.g. 100.75.76.90)
+web.stremio.com  (open on any device on your tailnet)
         │  HTTPS — valid Let's Encrypt cert
         ▼
-https://stremio.<your-tailnet>.ts.net        ← tailscale serve (sidecar)
+https://<hostname>.<your-tailnet>.ts.net     ← tailscale serve (sidecar)
         │  127.0.0.1:11470  (shared netns)
         ▼
 stremio/server                               ← the streaming server
 ```
 
 ## Quick start
+
+Requires [Docker](https://docs.docker.com/get-docker/) and a
+[Tailscale](https://tailscale.com/) account (the free plan is enough).
+
+```bash
+git clone https://github.com/intisy/stremio-compose
+cd stremio-compose
+cp config.env.example config.env   # then fill in TS_AUTHKEY (step 2)
+```
 
 ### 1. Enable HTTPS in your tailnet (one-time)
 In the Tailscale admin console:
@@ -88,17 +97,18 @@ e.g. `.\docker-compose.ps1 logs` or `./docker-compose.sh url`.
 |-----|---------|
 | `TS_AUTHKEY` | Tailscale auth key for the sidecar to join your tailnet. **Required.** |
 | `TS_HOSTNAME` | MagicDNS name of the node → `https://<TS_HOSTNAME>.<tailnet>.ts.net/`. Default `stremio`. |
-| `WATCH_DEVICE_IP` | The watch device's tailnet IP (`100.75.76.90`). Documentation only — used in the optional ACL below. |
+| `WATCH_DEVICE_IP` | The watch device's tailnet IP (`100.x.y.z`). Documentation only — used in the optional ACL below. |
 
 ## Optional: lock access to just your watch device
 By default any device on your tailnet can reach the server. To restrict it to
-only `100.75.76.90`, add a rule in your Tailscale **Access Controls**:
+only your watch device, add a rule in your Tailscale **Access Controls** (replace
+the IP with your `WATCH_DEVICE_IP`, and `stremio` with your `TS_HOSTNAME`):
 
 ```jsonc
 {
   "acls": [
     // Only the watch device may reach the stremio node's HTTPS port.
-    { "action": "accept", "src": ["100.75.76.90"], "dst": ["stremio:443"] }
+    { "action": "accept", "src": ["100.x.y.z"], "dst": ["stremio:443"] }
   ]
 }
 ```
@@ -115,12 +125,6 @@ config.env                    auth key + hostname (gitignored)
 config.env.example            template for config.env
 data/                         tailscale node state + stremio cache (gitignored)
 ```
-
-## This deployment
-- **Live URL:** `https://stremio.tail5c385a.ts.net/` — paste this into
-  web.stremio.com → Settings → Streaming server URL.
-- Tailnet node `stremio` = `100.69.197.29`. The watch device `100.75.76.90` is
-  `win-pc-von-finn` (this PC), already on the tailnet.
 
 ## Auth key lifecycle (90-day cap is fine)
 The auth key is only used at **first join**; the node identity then persists in
@@ -140,6 +144,9 @@ The auth key is only used at **first join**; the node identity then persists in
 - The node identity persists in `data/tailscale`, so restarts reuse the same
   tailnet node instead of creating `stremio-1`, `stremio-2`, …
 - **If the HTTPS URL returns 502:** the streaming server's listener isn't up —
-  `.\docker-compose.ps1 restart` (or `docker compose restart stremio-server`).
+  run the `restart` command (or `docker compose restart stremio-server`).
   Don't run `tailscale up --reset` while the stack is starting; it disrupts the
   shared network namespace before the server binds port 11470.
+
+## License
+MIT

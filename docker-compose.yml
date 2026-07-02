@@ -11,8 +11,7 @@
 # certificate issued for this node's MagicDNS name (<TS_HOSTNAME>.<tailnet>.ts.net)
 # and reverse-proxies to the stremio server. `stremio-server` shares the
 # sidecar's network namespace (network_mode: service:tailscale), so the serve
-# proxy reaches it on 127.0.0.1:11470 — same pattern hindsight uses for its
-# db-backup sidecar.
+# proxy reaches it on 127.0.0.1:11470 (one shared network stack).
 services:
   # --- Tailscale node + HTTPS front door --------------------------------------
   tailscale:
